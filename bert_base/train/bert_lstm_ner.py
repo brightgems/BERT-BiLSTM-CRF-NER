@@ -422,18 +422,15 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
         elif mode == tf.estimator.ModeKeys.EVAL:
             # 针对NER ,进行了修改
-            def metric_fn(total_loss, label_ids, pred_ids, mask):
+            def metric_fn(per_example_loss, label_ids, pred_ids, mask):
                 # 计算无pad的位置
                 mask = tf.cast(tf.reshape(mask, [-1]), dtype=tf.bool)
-                # tk_index = tf.argsort(mask)[mask>0]
                 # 去除pad
                 pred_ids = tf.reshape(pred_ids, [-1])[mask]
-                # pred_ids = tf.gather(pred_ids,tk_index)
                 label_ids = tf.reshape(label_ids, [-1])[mask]
-                # label_ids = tf.gather(pred_ids, tk_index)
                 # metrics
-                accuracy = tf.metrics.accuracy(label_ids, predictions)
-                loss = tf.metrics.mean(per_example_loss)
+                loss=tf.reduce_mean(per_example_loss)
+                accuracy = tf.metrics.accuracy(label_ids, pred_ids)
                 f1 = tf_metrics.f1(label_ids,pred_ids,num_labels)
                 return {
                     "eval_loss": loss,
