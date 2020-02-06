@@ -429,6 +429,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 pred_ids = tf.reshape(pred_ids, [-1])[mask]
                 label_ids = tf.reshape(label_ids, [-1])[mask]
                 # metrics
+                per_example_loss=tf.reshape(per_example_loss, [-1])[mask]
                 loss=tf.reduce_mean(per_example_loss)
                 accuracy = tf.metrics.accuracy(label_ids, pred_ids)
                 f1 = tf_metrics.f1(label_ids,pred_ids,num_labels)
