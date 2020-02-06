@@ -424,7 +424,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
             # 针对NER ,进行了修改
             def metric_fn(total_loss, label_ids, pred_ids, mask):
                 # 计算无pad的位置
-                mask = tf.cast(mask, dtype=tf.bool)
+                mask = tf.cast(tf.reshape(mask, [-1]), dtype=tf.bool)
                 # tk_index = tf.argsort(mask)[mask>0]
                 # 去除pad
                 pred_ids = tf.reshape(pred_ids, [-1])[mask]
