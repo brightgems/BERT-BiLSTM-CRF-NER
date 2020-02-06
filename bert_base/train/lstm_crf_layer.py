@@ -11,7 +11,7 @@ from tensorflow.contrib import crf
 
 
 class BLSTM_CRF(object):
-    def __init__(self, embedded_chars, hidden_unit, cell_type, num_layers, dropout_rate,
+    def __init__(self, embedded_chars, input_mask, hidden_unit, cell_type, num_layers, dropout_rate,
                  initializers, num_labels, seq_length, labels, lengths, is_training):
         """
         BLSTM-CRF 网络
@@ -31,6 +31,7 @@ class BLSTM_CRF(object):
         self.dropout_rate = dropout_rate
         self.cell_type = cell_type
         self.num_layers = num_layers
+        self.input_mask = input_mask
         self.embedded_chars = embedded_chars
         self.initializers = initializers
         self.seq_length = seq_length
@@ -40,7 +41,7 @@ class BLSTM_CRF(object):
         self.embedding_dims = embedded_chars.shape[-1].value
         self.is_training = is_training
 
-    def add_blstm_crf_layer(self, crf_only):
+    def add_blstm_crf_layer(self, crf_only=False, lstm_only=False):
         """
         blstm-crf网络
         :return:
@@ -48,19 +49,42 @@ class BLSTM_CRF(object):
         if self.is_training:
             # lstm input dropout rate i set 0.9 will get best score
             self.embedded_chars = tf.nn.dropout(self.embedded_chars, self.dropout_rate)
-
-        if crf_only:
-            logits = self.project_crf_layer(self.embedded_chars)
-        else:
-            # blstm
+        if lstm_only:
             lstm_output = self.blstm_layer(self.embedded_chars)
-            # project
-            logits = self.project_bilstm_layer(lstm_output)
-        # crf
-        loss, trans = self.crf_layer(logits)
-        # CRF decode, pred_ids 是一条最大概率的标注路径
-        pred_ids, _ = crf.crf_decode(potentials=logits, transition_params=trans, sequence_length=self.lengths)
-        return (loss, logits, trans, pred_ids)
+            logits = tf.layers.Dense(self.num_labels,kernel_regularizer=tf.keras.regularizers.l2(1e-5))(lstm_output)
+            loss, pred_ids = self._softmax_layer(logits, self.labels, self.num_labels, self.input_mask)
+        else:
+            if crf_only:
+                logits = self.project_crf_layer(self.embedded_chars)
+            else:
+                # blstm
+                lstm_output = self.blstm_layer(self.embedded_chars)
+                # project
+                logits = self.project_bilstm_layer(lstm_output)
+            # crf
+            loss, trans = self.crf_layer(logits)
+            # CRF decode, pred_ids 是一条最大概率的标注路径
+            pred_ids, viterbi_score = crf.crf_decode(potentials=logits, transition_params=trans, sequence_length=self.lengths)
+        
+        return (loss, logits, pred_ids)
+
+    
+    def _softmax_layer(self,logits,labels,num_labels,mask):
+        logits = tf.reshape(logits, [-1, num_labels])
+        labels = tf.reshape(labels, [-1])
+        mask = tf.cast(mask,dtype=tf.float32)
+        one_hot_labels = tf.one_hot(labels, depth=num_labels, dtype=tf.float32)
+        loss = tf.losses.softmax_cross_entropy(logits=logits,onehot_labels=one_hot_labels)
+        loss *= tf.reshape(mask, [-1])
+        loss = tf.reduce_sum(loss)
+        total_size = tf.reduce_sum(mask)
+        total_size += 1e-12 # to avoid division by 0 for all-0 weights
+        loss /= total_size
+        # predict not mask we could filtered it in the prediction part.
+        probabilities = tf.math.softmax(logits, axis=-1)
+        predict = tf.math.argmax(probabilities, axis=-1)
+        return loss, predict
+
 
     def _witch_cell(self):
         """

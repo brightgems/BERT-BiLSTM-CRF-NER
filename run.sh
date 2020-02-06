@@ -11,7 +11,7 @@ bert-base-ner-train \
     -lstm_size 128 \
     -num_layers 1 \
     -save_summary_steps 10 \
-    -save_checkpoints_steps 10
+    -save_checkpoints_steps 10 \
     -learning_rate 2e-6 \
     -dropout_rate 1 \
     -batch_size 32 

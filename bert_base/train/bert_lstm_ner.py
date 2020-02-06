@@ -379,9 +379,10 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
         # 使用参数构建模型,input_idx 就是输入的样本idx表示，label_ids 就是标签的idx表示
-        total_loss, logits, trans, probabilities = create_model(
+        total_loss, logits, pred_ids = create_model(
             bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
-            num_labels, False, args.dropout_rate, args.lstm_size, args.cell, args.num_layers)
+            num_labels, False, args.dropout_rate, args.lstm_size, args.cell, args.num_layers,
+            args.crf_only, args.lstm_only)
 
         tvars = tf.trainable_variables()
         # 加载BERT模型
@@ -421,21 +422,29 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
         elif mode == tf.estimator.ModeKeys.EVAL:
             # 针对NER ,进行了修改
-            def metric_fn(total_loss,label_ids, probabilities):
-                predictions = tf.argmax(probabilities, axis=-1, output_type=tf.int32)
+            def metric_fn(total_loss, label_ids, pred_ids, mask):
+                # 计算无pad的位置
+                mask = tf.cast(mask, dtype=tf.bool)
+                # tk_index = tf.argsort(mask)[mask>0]
+                # 去除pad
+                pred_ids = tf.reshape(pred_ids, [-1])[mask]
+                # pred_ids = tf.gather(pred_ids,tk_index)
+                label_ids = tf.reshape(label_ids, [-1])[mask]
+                # label_ids = tf.gather(pred_ids, tk_index)
+                # metrics
                 accuracy = tf.metrics.accuracy(label_ids, predictions)
                 loss = tf.metrics.mean(per_example_loss)
-                f1 = tf_metrics.f1(label_ids,probabilities,num_labels)
+                f1 = tf_metrics.f1(label_ids,pred_ids,num_labels)
                 return {
-                    "eval_accuracy": accuracy,
                     "eval_loss": loss,
+                    "eval_accuracy": accuracy,
                     "eval_f1": f1,
                 }
                 # return {
-                #     "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=probabilities),
+                #     "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=pred_ids),
                 # }
             
-            eval_metrics = metric_fn(total_loss,label_ids, probabilities)
+            eval_metrics = metric_fn(total_loss,label_ids, pred_ids)
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
                 loss=total_loss,
@@ -444,7 +453,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         else:
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
-                predictions=probabilities
+                predictions=pred_ids
             )
         return output_spec
 
