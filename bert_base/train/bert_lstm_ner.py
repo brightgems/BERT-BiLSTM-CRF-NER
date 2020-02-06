@@ -12,6 +12,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import logging
 import collections
 import os
 import numpy as np
@@ -257,15 +258,14 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
 
     # 打印部分样本数据信息
     if ex_index < 5:
-        logger.info("*** Example ***")
-        logger.info("guid: %s" % (example.guid))
-        logger.info("tokens: %s" % " ".join(
+        logger.debug("*** Example ***")
+        logger.debug("guid: %s" % (example.guid))
+        logger.debug("tokens: %s" % " ".join(
             [tokenization.printable_text(x) for x in tokens]))
-        logger.info("input_ids: %s" % " ".join([str(x) for x in input_ids]))
-        logger.info("input_mask: %s" % " ".join([str(x) for x in input_mask]))
-        logger.info("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
-        logger.info("label_ids: %s" % " ".join([str(x) for x in label_ids]))
-        # logger.info("label_mask: %s" % " ".join([str(x) for x in label_mask]))
+        logger.debug("input_ids: %s" % " ".join([str(x) for x in input_ids]))
+        logger.debug("input_mask: %s" % " ".join([str(x) for x in input_mask]))
+        logger.debug("segment_ids: %s" % " ".join([str(x) for x in segment_ids]))
+        logger.debug("label_ids: %s" % " ".join([str(x) for x in label_ids]))
 
     # 结构化为一个类
     feature = InputFeatures(
@@ -496,6 +496,7 @@ def adam_filter(model_path):
 
 def train(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device_map
+    logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
 
     processors = {
         "ner": NerProcessor

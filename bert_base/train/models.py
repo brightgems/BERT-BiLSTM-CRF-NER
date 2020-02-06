@@ -90,6 +90,12 @@ def create_model(bert_config, is_training, input_ids, input_mask,
     )
     # 获取对应的embedding 输入数据[batch_size, seq_length, embedding_size]
     embedding = model.get_sequence_output()
+    #gets a reference to the list containing the trainable variables
+    trainable_collection = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
+    tf.logging.info("freeze tensors:%d"%len(trainable_collection))
+    for rem in trainable_collection:
+        trainable_collection.remove(rem)
+
     max_seq_length = embedding.shape[1].value
     # 算序列真实长度
     used = tf.sign(tf.abs(input_ids))

@@ -50,7 +50,9 @@ class BLSTM_CRF(object):
             # lstm input dropout rate i set 0.9 will get best score
             self.embedded_chars = tf.nn.dropout(self.embedded_chars, self.dropout_rate)
         if lstm_only:
+            # blstm
             lstm_output = self.blstm_layer(self.embedded_chars)
+            # project
             logits = tf.layers.Dense(self.num_labels,kernel_regularizer=tf.keras.regularizers.l2(1e-5))(lstm_output)
             loss, pred_ids = self._softmax_layer(logits, self.labels, self.num_labels, self.input_mask)
         else:
@@ -69,7 +71,11 @@ class BLSTM_CRF(object):
         return (loss, logits, pred_ids)
 
     
-    def _softmax_layer(self,logits,labels,num_labels,mask):
+    def _softmax_layer(self, logits, labels, num_labels, mask):
+        # predict not mask we could filtered it in the prediction part.
+        probabilities = tf.math.softmax(logits, axis=-1)
+        predict = tf.math.argmax(probabilities, axis=-1)
+        # compute loss
         logits = tf.reshape(logits, [-1, num_labels])
         labels = tf.reshape(labels, [-1])
         mask = tf.cast(mask,dtype=tf.float32)
@@ -80,9 +86,6 @@ class BLSTM_CRF(object):
         total_size = tf.reduce_sum(mask)
         total_size += 1e-12 # to avoid division by 0 for all-0 weights
         loss /= total_size
-        # predict not mask we could filtered it in the prediction part.
-        probabilities = tf.math.softmax(logits, axis=-1)
-        predict = tf.math.argmax(probabilities, axis=-1)
         return loss, predict
 
 
