@@ -7,11 +7,12 @@ bert-base-ner-train \
     -init_checkpoint $BERT_BASE_DIR/bert_model.ckpt \
     -vocab_file $BERT_BASE_DIR/vocab.txt \
     -output_dir bert_ner_demo \
-    -num_train_epochs 5 \
+    -num_train_epochs 3 \
     -lstm_size 128 \
     -num_layers 1 \
-    -save_summary_steps 1 \
+    -save_summary_steps 10 \
+    -save_checkpoints_steps 10
     -learning_rate 2e-6 \
-    -dropout_rate 0.1 \
+    -dropout_rate 1 \
     -batch_size 32 \
-    -do_train -do_eval
+
