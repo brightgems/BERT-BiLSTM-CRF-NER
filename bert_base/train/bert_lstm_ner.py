@@ -640,8 +640,8 @@ def train(args):
                                                  predict_file, args.output_dir, mode="test")
 
         logger.info("***** Running prediction*****")
-        logger.info("  Num examples = %d", len(predict_examples))
-        logger.info("  Batch size = %d", args.batch_size)
+        logger.info("  Num examples = %d"% len(predict_examples))
+        logger.info("  Batch size = %d"% args.batch_size)
 
         predict_drop_remainder = False
         predict_input_fn = file_based_input_fn_builder(
