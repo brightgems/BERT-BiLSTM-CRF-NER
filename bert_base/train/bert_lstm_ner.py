@@ -444,12 +444,6 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
     return model_fn
 
 
-# def load_data():
-#     processer = NerProcessor()
-#     processer.get_labels()
-#     example = processer.get_train_examples(FLAGS.data_dir)
-#     print()
-
 def get_last_checkpoint(model_path):
     if not os.path.exists(os.path.join(model_path, 'checkpoint')):
         logger.info('checkpoint file not exits:'.format(os.path.join(model_path, 'checkpoint')))
@@ -556,16 +550,16 @@ def train(args):
         num_warmup_steps = int(num_train_steps * args.warmup_proportion)
 
         logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(train_examples))
-        logger.info("  Batch size = %d", args.batch_size)
-        logger.info("  Num steps = %d", num_train_steps)
+        logger.info("  Num examples = %d"% len(train_examples))
+        logger.info("  Batch size = %d"% args.batch_size)
+        logger.info("  Num steps = %d"% num_train_steps)
 
         eval_examples = processor.get_dev_examples(args.data_dir)
 
         # 打印验证集数据信息
         logger.info("***** Running evaluation *****")
-        logger.info("  Num examples = %d", len(eval_examples))
-        logger.info("  Batch size = %d", args.batch_size)
+        logger.info("  Num examples = %d"% len(eval_examples))
+        logger.info("  Batch size = %d"% args.batch_size)
 
     label_list = processor.get_labels()
     # 返回的model_dn 是一个函数，其定义了模型，训练，评测方法，并且使用钩子参数，加载了BERT模型的参数进行了自己模型的参数初始化过程
