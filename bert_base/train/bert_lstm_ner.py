@@ -444,7 +444,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 #     "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=pred_ids),
                 # }
             
-            eval_metrics = metric_fn(total_loss,label_ids, pred_ids)
+            eval_metrics = metric_fn(total_loss,label_ids, pred_ids,input_mask)
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
                 loss=total_loss,
