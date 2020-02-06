@@ -24,8 +24,6 @@ from bert_base.bert import modeling
 from bert_base.bert import optimization
 from bert_base.bert import tokenization
 
-# import
-
 from bert_base.train.models import create_model, InputFeatures, InputExample
 from bert_base.server.helper import set_logger
 __version__ = '0.1.0'
@@ -381,7 +379,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         is_training = (mode == tf.estimator.ModeKeys.TRAIN)
 
         # 使用参数构建模型,input_idx 就是输入的样本idx表示，label_ids 就是标签的idx表示
-        total_loss, logits, trans, pred_ids = create_model(
+        total_loss, logits, trans, probabilities = create_model(
             bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
             num_labels, False, args.dropout_rate, args.lstm_size, args.cell, args.num_layers)
 
@@ -423,12 +421,21 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
 
         elif mode == tf.estimator.ModeKeys.EVAL:
             # 针对NER ,进行了修改
-            def metric_fn(label_ids, pred_ids):
+            def metric_fn(total_loss,label_ids, probabilities):
+                predictions = tf.argmax(probabilities, axis=-1, output_type=tf.int32)
+                accuracy = tf.metrics.accuracy(label_ids, predictions)
+                loss = tf.metrics.mean(per_example_loss)
+                f1 = tf_metrics.f1(label_ids,probabilities,num_labels)
                 return {
-                    "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=pred_ids),
+                    "eval_accuracy": accuracy,
+                    "eval_loss": loss,
+                    "eval_f1": f1,
                 }
-
-            eval_metrics = metric_fn(label_ids, pred_ids)
+                # return {
+                #     "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=probabilities),
+                # }
+            
+            eval_metrics = metric_fn(total_loss,label_ids, probabilities)
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
                 loss=total_loss,
@@ -437,7 +444,7 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
         else:
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
-                predictions=pred_ids
+                predictions=probabilities
             )
         return output_spec
 
@@ -607,7 +614,7 @@ def train(args):
             seq_length=args.max_seq_length,
             is_training=False,
             drop_remainder=False)
-
+        
         # train and eval togither
         # early stop hook
         early_stopping_hook = tf.estimator.experimental.stop_if_no_decrease_hook(
@@ -622,6 +629,7 @@ def train(args):
         train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=num_train_steps,
                                             hooks=[early_stopping_hook])
         eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn)
+        logger.info("***** Running train and eval *****")
         tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
     if args.do_predict:
