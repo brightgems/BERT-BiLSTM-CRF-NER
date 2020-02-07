@@ -16,7 +16,7 @@ import logging
 import collections
 import os
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import codecs
 import pickle
 
@@ -425,8 +425,8 @@ def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learni
                 # 计算无pad的位置
                 mask = tf.cast(tf.reshape(mask, [-1]), dtype=tf.bool)
                 # 去除pad
-                pred_ids = tf.reshape(pred_ids, [-1])[mask]
-                label_ids = tf.reshape(label_ids, [-1])[mask]
+                pred_ids = tf.to_int32(tf.reshape(pred_ids, [-1]))[mask]
+                label_ids = tf.to_int32(tf.reshape(label_ids, [-1]))[mask]
                 # metrics
                 loss=tf.metrics.mean_squared_error(labels=label_ids,predictions=pred_ids)
                 accuracy = tf.metrics.accuracy(label_ids, pred_ids)
@@ -493,7 +493,7 @@ def adam_filter(model_path):
 def train(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device_map
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
-    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG if args.verbose else tf.compat.v1.logging.INFO)
+    tf.logging.set_verbosity(tf.logging.DEBUG if args.verbose else tf.logging.INFO)
 
     processors = {
         "ner": NerProcessor

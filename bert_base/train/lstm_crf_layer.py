@@ -5,7 +5,7 @@ bert-blstm-crf layer
 @Author:Macan
 """
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn
 from tensorflow.contrib import crf
 
@@ -115,7 +115,7 @@ class BLSTM_CRF(object):
 
     def blstm_layer(self, embedding_chars):
         """
-
+        多层双向RNN
         :return:
         """
         with tf.variable_scope('rnn_layer'):
