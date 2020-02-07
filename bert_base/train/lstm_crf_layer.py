@@ -188,7 +188,7 @@ class BLSTM_CRF(object):
             if self.labels is None:
                 return None, trans
             else:
-                log_likelihood, trans = tf.contrib.crf.crf_log_likelihood(
+                log_likelihood, trans = crf.crf_log_likelihood(
                     inputs=logits,
                     tag_indices=self.labels,
                     transition_params=trans,
