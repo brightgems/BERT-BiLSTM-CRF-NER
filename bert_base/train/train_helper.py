@@ -73,6 +73,7 @@ def get_args_parser():
     group2.add_argument('-clean', action='store_true', default=False)
     group2.add_argument('-crf_only', action='store_true', default=False)
     group2.add_argument('-lstm_only', action='store_true', default=False)
+    group2.add_argument('-finetune', action='store_true', default=False)
     group2.add_argument('-device_map', type=str, default='0',
                         help='witch device using to train')
 

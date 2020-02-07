@@ -381,7 +381,7 @@ def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learni
         total_loss, logits, pred_ids = create_model(
             bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
             num_labels, False, args.dropout_rate, args.lstm_size, args.cell, args.num_layers,
-            args.crf_only, args.lstm_only)
+            args.crf_only, args.lstm_only,args.finetune)
 
         tvars = tf.trainable_variables()
         # 加载BERT模型
@@ -627,7 +627,7 @@ def train(args):
         early_stopping_hook = tf.estimator.experimental.stop_if_no_decrease_hook(
             estimator=estimator,
             metric_name='eval_f1',
-            max_steps_without_decrease=num_train_steps,
+            max_steps_without_decrease=args.max_steps_without_decrease,
             eval_dir=None,
             min_steps=0,
             run_every_secs=None,
