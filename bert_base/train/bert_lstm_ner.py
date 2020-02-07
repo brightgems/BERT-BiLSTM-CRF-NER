@@ -381,7 +381,7 @@ def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learni
         total_loss, logits, pred_ids = create_model(
             bert_config, is_training, input_ids, input_mask, segment_ids, label_ids,
             num_labels, False, args.dropout_rate, args.lstm_size, args.cell, args.num_layers,
-            args.crf_only, args.lstm_only,args.finetune)
+            args.crf_only, args.lstm_only)
 
         tvars = tf.trainable_variables()
         # 加载BERT模型
@@ -392,15 +392,15 @@ def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learni
             tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
 
         # 打印变量名
-        # logger.info("**** Trainable Variables ****")
-        #
-        # # 打印加载模型的参数
-        # for var in tvars:
-        #     init_string = ""
-        #     if var.name in initialized_variable_names:
-        #         init_string = ", *INIT_FROM_CKPT*"
-        #     logger.info("  name = %s, shape = %s%s", var.name, var.shape,
-        #                     init_string)
+        if args.verbose:
+            logger.info("**** Trainable Variables ****")
+            # 打印加载模型的参数
+            for var in tvars:
+                init_string = ""
+                if var.name in initialized_variable_names:
+                    init_string = ", *INIT_FROM_CKPT*"
+                logger.info("  name = %s, shape = %s%s", var.name, var.shape,
+                                init_string)
 
         output_spec = None
         if mode == tf.estimator.ModeKeys.TRAIN:

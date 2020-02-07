@@ -45,7 +45,7 @@ def get_args_parser():
                         help='Whether to run the predict in inference mode on the test set.')
     group2.add_argument('-batch_size', type=int, default=64,
                         help='Total batch size for training, eval and predict.')
-    group2.add_argument('-learning_rate', type=float, default=1e-5,
+    group2.add_argument('-learning_rate', type=float, default=5e-5,
                         help='The initial learning rate for Adam.')
     group2.add_argument('-num_train_epochs', type=float, default=10,
                         help='Total number of training epochs to perform.')
@@ -73,7 +73,6 @@ def get_args_parser():
     group2.add_argument('-clean', action='store_true', default=False)
     group2.add_argument('-crf_only', action='store_true', default=False)
     group2.add_argument('-lstm_only', action='store_true', default=False)
-    group2.add_argument('-finetune', action='store_true', default=False)
     group2.add_argument('-max_steps_without_decrease',type=int, default=500)
     group2.add_argument('-device_map', type=str, default='0',
                         help='witch device using to train')

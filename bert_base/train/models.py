@@ -65,7 +65,7 @@ class DataProcessor(object):
 def create_model(bert_config, is_training, input_ids, input_mask,
                  segment_ids, labels, num_labels, use_one_hot_embeddings,
                  dropout_rate=1.0, lstm_size=1, cell='lstm', num_layers=1,
-                 crf_only=False,lstm_only=False,finetune=True):
+                 crf_only=False,lstm_only=False):
     """
     创建X模型
     :param bert_config: bert 配置
@@ -91,14 +91,6 @@ def create_model(bert_config, is_training, input_ids, input_mask,
     )
     # 获取对应的embedding 输入数据[batch_size, seq_length, embedding_size]
     embedding = model.get_sequence_output()
-    #remove variables in the trainable collections to prevent the variable be trained in the inference
-    if not finetune:
-        trainable_collection = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
-        trainable_collection.clear()
-        tf.logging.info("freeze tensors#:%d" % len(trainable_collection))
-    else:
-        tf.logging.info("BERT fine tune started")
-
     max_seq_length = embedding.shape[1].value
     # 算序列真实长度
     used = tf.sign(tf.abs(input_ids))
