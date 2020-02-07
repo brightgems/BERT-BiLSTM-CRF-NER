@@ -70,7 +70,7 @@ def get_args_parser():
                         help='after training do filter Adam params from model and save no Adam params model in file.')
     group2.add_argument('-do_lower_case', type=bool, default=True,
                         help='Whether to lower case the input text.')
-    group2.add_argument('-clean', type=bool, default=True)
+    group2.add_argument('-clean', action='store_true', default=False)
     group2.add_argument('-crf_only', action='store_true', default=False)
     group2.add_argument('-lstm_only', action='store_true', default=False)
     group2.add_argument('-device_map', type=str, default='0',

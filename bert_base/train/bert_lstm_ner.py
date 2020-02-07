@@ -217,7 +217,6 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
                 labels.append(label_1)
             else:  # 一般不会出现else
                 labels.append("X")
-    # tokens = tokenizer.tokenize(example.text)
     # 序列截断
     if len(tokens) >= max_seq_length - 1:
         tokens = tokens[0:(max_seq_length - 2)]  # -2 的原因是因为序列需要加一个句首和句尾标志
@@ -228,7 +227,7 @@ def convert_single_example(ex_index, example, label_list, max_seq_length, tokeni
     ntokens.append("[CLS]")  # 句子开始设置CLS 标志
     segment_ids.append(0)
     # append("O") or append("[CLS]") not sure!
-    label_ids.append(label_map["[CLS]"])  # O OR CLS 没有任何影响，不过我觉得O 会减少标签个数,不过拒收和句尾使用不同的标志来标注，使用LCS 也没毛病
+    label_ids.append(label_map["[CLS]"])  # O OR CLS 没有任何影响，不过我觉得O 会减少标签个数,不过句首和句尾使用不同的标志来标注，使用LCS 也没毛病
     for i, token in enumerate(tokens):
         ntokens.append(token)
         segment_ids.append(0)
@@ -350,7 +349,7 @@ def file_based_input_fn_builder(input_file, seq_length, is_training, drop_remain
     return input_fn
 
 
-def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
+def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learning_rate,
                      num_train_steps, num_warmup_steps, args):
     """
     构建模型
@@ -418,31 +417,28 @@ def model_fn_builder(bert_config, num_labels, init_checkpoint, learning_rate,
                 mode=mode,
                 loss=total_loss,
                 train_op=train_op,
-                training_hooks=[logging_hook])
+                training_hooks=[logging_hook]) #如果不送值，则训练过程中不会显示字典中的数值
 
         elif mode == tf.estimator.ModeKeys.EVAL:
             # 针对NER ,进行了修改
-            def metric_fn(per_example_loss, label_ids, pred_ids, mask):
+            def metric_fn(label_ids, pred_ids, mask):
                 # 计算无pad的位置
                 mask = tf.cast(tf.reshape(mask, [-1]), dtype=tf.bool)
                 # 去除pad
                 pred_ids = tf.reshape(pred_ids, [-1])[mask]
                 label_ids = tf.reshape(label_ids, [-1])[mask]
                 # metrics
-                per_example_loss=tf.reshape(per_example_loss, [-1])[mask]
-                loss=tf.metrics.mean(per_example_loss)
+                loss=tf.metrics.mean_squared_error(labels=label_ids,predictions=pred_ids)
                 accuracy = tf.metrics.accuracy(label_ids, pred_ids)
-                f1 = tf_metrics.f1(label_ids,pred_ids,num_labels)
+                pos_indices = [i for (i, label) in enumerate(label_list, 1)]
+                f1 = tf_metrics.f1(label_ids,pred_ids,num_labels, pos_indices=pos_indices)
                 return {
                     "eval_loss": loss,
                     "eval_accuracy": accuracy,
                     "eval_f1": f1,
                 }
-                # return {
-                #     "eval_loss": tf.metrics.mean_squared_error(labels=label_ids, predictions=pred_ids),
-                # }
-            
-            eval_metrics = metric_fn(total_loss,label_ids, pred_ids,input_mask)
+
+            eval_metrics = metric_fn(label_ids, pred_ids,input_mask)
             output_spec = tf.estimator.EstimatorSpec(
                 mode=mode,
                 loss=total_loss,
@@ -497,6 +493,7 @@ def adam_filter(model_path):
 def train(args):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.device_map
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+    tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.DEBUG if args.verbose else tf.compat.v1.logging.INFO)
 
     processors = {
         "ner": NerProcessor
@@ -545,8 +542,9 @@ def train(args):
 
     run_config = tf.estimator.RunConfig(
         model_dir=args.output_dir,
-        save_summary_steps=500,
-        save_checkpoints_steps=500,
+        keep_checkpoint_max=10, #最大保存模型的数量
+        save_summary_steps=args.save_summary_steps,
+        save_checkpoints_steps=args.save_checkpoints_steps,
         session_config=session_config
     )
 
@@ -582,10 +580,11 @@ def train(args):
     model_fn = model_fn_builder(
         bert_config=bert_config,
         num_labels=len(label_list) + 1,
+        label_list=label_list,
         init_checkpoint=args.init_checkpoint,
         learning_rate=args.learning_rate,
         num_train_steps=num_train_steps,
-        num_warmup_steps=num_warmup_steps,
+        num_warmup_steps=num_warmup_steps, #热身步数，此时学习率很小，当global_steps<num_warmup_steps时，learn_rate=global_steps/num_warmup_steps*init_learn_rate
         args=args)
 
     params = {
@@ -627,7 +626,7 @@ def train(args):
         # early stop hook
         early_stopping_hook = tf.estimator.experimental.stop_if_no_decrease_hook(
             estimator=estimator,
-            metric_name='loss',
+            metric_name='eval_f1',
             max_steps_without_decrease=num_train_steps,
             eval_dir=None,
             min_steps=0,

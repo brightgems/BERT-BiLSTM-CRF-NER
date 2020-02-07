@@ -215,3 +215,5 @@ def metrics_from_confusion_matrix(cm, pos_indices=None, average='micro',
 
     else:
         raise NotImplementedError()
+
+    

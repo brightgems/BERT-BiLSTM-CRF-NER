@@ -1,6 +1,6 @@
-bert_ner_demo
 build
 .pyc
 bert_base.egg-info
 dist
 .vscode
+saved_model
