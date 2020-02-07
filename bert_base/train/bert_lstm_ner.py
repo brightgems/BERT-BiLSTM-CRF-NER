@@ -635,7 +635,8 @@ def train(args):
 
         train_spec = tf.estimator.TrainSpec(input_fn=train_input_fn, max_steps=num_train_steps,
                                             hooks=[early_stopping_hook])
-        eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn)
+        throttle_secs=min(max(int(np.sqrt(args.save_checkpoints_steps))*30,60),600) # 多少秒做一次评估
+        eval_spec = tf.estimator.EvalSpec(input_fn=eval_input_fn,throttle_secs=throttle_secs)
         logger.info("***** Running train and eval *****")
         tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
