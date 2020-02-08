@@ -15,8 +15,7 @@ bert-base-ner-train \
     -learning_rate 5e-5 \
     -dropout_rate 0.5 \
     -batch_size 32 \
-    -clean \
-    -finetune
+    -clean 
 
 # TRAIN BASELINE
 bert-base-ner-train \
@@ -34,5 +33,4 @@ bert-base-ner-train \
     -dropout_rate 0.5 \
     -batch_size 32 \
     -max_steps_without_decrease 1000 \
-    -clean \
-    -finetune    
+    -clean 

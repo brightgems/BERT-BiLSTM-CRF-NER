@@ -73,7 +73,8 @@ def get_args_parser():
     group2.add_argument('-clean', action='store_true', default=False)
     group2.add_argument('-crf_only', action='store_true', default=False)
     group2.add_argument('-lstm_only', action='store_true', default=False)
-    group2.add_argument('-max_steps_without_decrease',type=int, default=500)
+    group2.add_argument('-max_steps_without_decrease', type=int, default=500)
+    group2.add_argument('-trainable_last_layers', type=str, default=None)
     group2.add_argument('-device_map', type=str, default='0',
                         help='witch device using to train')
 

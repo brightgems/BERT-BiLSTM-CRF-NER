@@ -6,7 +6,7 @@
  @Author  : MaCan (ma_cancan@163.com)
  @File    : models.py
 """
-
+import tensorflow.compat.v1 as tf
 from bert_base.train.lstm_crf_layer import BLSTM_CRF
 from tensorflow.contrib.layers.python.layers import initializers
 
@@ -62,6 +62,32 @@ class DataProcessor(object):
         raise NotImplementedError()
 
 
+def filter_trainable_variables(trainable_scopes):
+  """Keep only trainable variables which are prefixed with given scopes.
+  Args:
+    trainable_scopes: either list of trainable scopes or string with comma
+      separated list of trainable scopes.
+  This function removes all variables which are not prefixed with given
+  trainable_scopes from collection of trainable variables.
+  Useful during network fine tuning, when you only need to train subset of
+  variables.
+  """
+  if not trainable_scopes:
+    return
+  if isinstance(trainable_scopes, six.string_types):
+    trainable_scopes = [scope.strip() for scope in trainable_scopes.split(',')]
+  trainable_scopes = {scope for scope in trainable_scopes if scope}
+  if not trainable_scopes:
+    return
+  trainable_collection = tf.get_collection_ref(
+      tf.GraphKeys.TRAINABLE_VARIABLES)
+  non_trainable_vars = [
+      v for v in trainable_collection
+      if not any([v.op.name.startswith(s) for s in trainable_scopes])
+  ]
+  for v in non_trainable_vars:
+    trainable_collection.remove(v)
+
 def create_model(bert_config, is_training, input_ids, input_mask,
                  segment_ids, labels, num_labels, use_one_hot_embeddings,
                  dropout_rate=1.0, lstm_size=1, cell='lstm', num_layers=1,
@@ -96,10 +122,11 @@ def create_model(bert_config, is_training, input_ids, input_mask,
     used = tf.sign(tf.abs(input_ids))
     lengths = tf.reduce_sum(used, reduction_indices=1)  # [batch_size] 大小的向量，包含了当前batch中的序列长度
     # 添加CRF output layer
-    blstm_crf = BLSTM_CRF(embedded_chars=embedding, input_mask=input_mask, hidden_unit=lstm_size, cell_type=cell, num_layers=num_layers,
-                          dropout_rate=dropout_rate, initializers=initializers, num_labels=num_labels,
-                          seq_length=max_seq_length, labels=labels, lengths=lengths, is_training=is_training)
-    rst = blstm_crf.add_blstm_crf_layer(crf_only=crf_only,lstm_only=lstm_only)
+    with tf.variable_scope('blstm_crf_layer'):
+        blstm_crf = BLSTM_CRF(embedded_chars=embedding, input_mask=input_mask, hidden_unit=lstm_size, cell_type=cell, num_layers=num_layers,
+                            dropout_rate=dropout_rate, initializers=initializers, num_labels=num_labels,
+                            seq_length=max_seq_length, labels=labels, lengths=lengths, is_training=is_training)
+        rst = blstm_crf.add_blstm_crf_layer(crf_only=crf_only,lstm_only=lstm_only)
     return rst
 
 
