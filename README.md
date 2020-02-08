@@ -21,7 +21,9 @@ THIS PROJECT ONLY SUPPORT Python3.
 ###################################################################
 
 ## 模型改进
-此项目基于[原作](https://blog.csdn.net/macanv)基础上修改，在训练阶段增加了更多参数用于模型的微调。
+此项目基于[原作](https://github.com/macanv/BERT-BiLSTM-CRF-NER)基础上修改，在训练阶段增加了更多参数用于模型的微调，和返回分词结果。
+
+### 新增训练参数
 
 |参数|说明|
 |---|---|
@@ -47,6 +49,61 @@ bert-base-ner-train \
     -dropout_rate 0.5 \
     -batch_size 32 \
     -clean -trainable_last_layers 0,1
+```
+
+### 输出分词内容
+参考原作者对分类型任务的输出处理，增加了对分词结果(tokens)的输出，方便客户端使用
+
+修改后输出：
+```
+{
+    "id": 123,
+    "result": [
+        {
+            "tags": [
+                [
+                    "B-TIME",
+                    "I-TIME",
+                    "I-TIME",
+                    "O",
+                    "B-PEOPLE",
+                    "I-PEOPLE",
+                    "O",
+                    "B-ORGANIZATION",
+                    "I-ORGANIZATION",
+                    "I-ORGANIZATION",
+                    "I-ORGANIZATION",
+                    "B-VERB",
+                    "I-VERB",
+                    "B-POSITION",
+                    "I-POSITION",
+                    "I-POSITION"
+                ]
+            ],
+            "tokens": [
+                [
+                    "1992",
+                    "/",
+                    "6",
+                    "，",
+                    "小",
+                    "明",
+                    "在",
+                    "st",
+                    "##an",
+                    "##ford",
+                    "university",
+                    "攻",
+                    "读",
+                    "cs",
+                    "专",
+                    "业"
+                ]
+            ]
+        }
+    ],
+    "status": 200
+}
 ```
 
 ## Download project and install  

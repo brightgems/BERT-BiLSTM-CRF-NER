@@ -336,7 +336,7 @@ class BertSink(Process):
                 elif self.args.mode == 'NER':
                     arr_info, arr_val = jsonapi.loads(msg[1]), pickle.loads(msg[2])
                     pending_result[job_id].append((arr_val, partial_id))
-                    pending_checksum[job_id] += len(arr_val)
+                    pending_checksum[job_id] +=  len(arr_val['tags'])
                 elif self.args.mode == 'CLASS':
                     arr_info, arr_val = jsonapi.loads(msg[1]), pickle.loads(msg[2])
                     pending_result[job_id].append((arr_val, partial_id))
@@ -353,7 +353,7 @@ class BertSink(Process):
                     # re-sort to the original order
                     tmp = [x[0] for x in sorted(tmp, key=lambda x: int(x[1]))]
                     client_addr, req_id = job_info.split(b'#')
-                    if self.args.mode == 'CLASS': # 因为分类模型带上了分类的概率，所以不能直接返回结果，需要使用json格式的数据进行返回。
+                    if self.args.mode == 'CLASS' or self.args.mode == 'NER': # 因为需要附加信息，需要使用json格式的数据进行返回。
                         send_ndarray(sender, client_addr, tmp, req_id)
                     else:
                         send_ndarray(sender, client_addr, np.concatenate(tmp, axis=0), req_id)
@@ -439,10 +439,11 @@ class BertWorker(Process):
             input_mask = features["input_mask"]
             input_map = {"input_ids": input_ids, "input_mask": input_mask}
             pred_ids = tf.import_graph_def(graph_def, name='', input_map=input_map, return_elements=['pred_ids:0'])
-
+            print(features.keys())
             return EstimatorSpec(mode=mode, predictions={
                 'client_id': features['client_id'],
-                'encodes': pred_ids[0]
+                'encodes': pred_ids[0],
+                'tokens': features['input_tokens']
             })
 
         def classification_model_fn(features, labels, mode, params):
@@ -511,7 +512,19 @@ class BertWorker(Process):
                 logger.info('job done\tsize: %s\tclient: %s' % (r['encodes'].shape, r['client_id']))
             elif self.mode == 'NER':
                 pred_label_result, pred_ids_result = ner_result_to_json(r['encodes'], self.id2label)
-                rst = send_ndarray(sink, r['client_id'], pred_label_result)
+                # 　过滤token,并编码
+                tokens = []
+                for f in r['tokens']:
+                    t = []
+                    for ti in f:
+                        tstr = ti.decode('utf-8')
+                        if tstr in ['[CLS]', '[SEP]', '[BLANK]']:
+                            continue
+                        t.append(tstr)
+                    tokens.append(t)
+                #  打包响应数据
+                to_client = {'tokens': tokens, 'tags': pred_label_result}
+                rst = send_ndarray(sink, r['client_id'], to_client)
                 # print('rst:', rst)
                 logger.info('job done\tsize: %s\tclient: %s' % (r['encodes'].shape, r['client_id']))
             elif self.mode == 'CLASS':
@@ -552,12 +565,17 @@ class BertWorker(Process):
                         is_tokenized = all(isinstance(el, list) for el in msg)
                         tmp_f = list(convert_lst_to_features(msg, self.max_seq_len, tokenizer, logger,
                                                              is_tokenized, self.mask_cls_sep))
-                        #print([f.input_ids for f in tmp_f])
+                        #  提取tokens,并填充长度至max_seq_len    
+                        tokens = []
+                        for f in [f.tokens for f in tmp_f]:
+                            f = f + ['[BLANK]'] * (self.max_seq_len - len(f))
+                            tokens.append(f)
                         yield {
                             'client_id': client_id,
                             'input_ids': [f.input_ids for f in tmp_f],
                             'input_mask': [f.input_mask for f in tmp_f],
-                            'input_type_ids': [f.input_type_ids for f in tmp_f]
+                            'input_type_ids': [f.input_type_ids for f in tmp_f],
+                            'input_tokens': tokens
                         }
 
         def input_fn():
@@ -566,12 +584,15 @@ class BertWorker(Process):
                 output_types={'input_ids': tf.int32,
                               'input_mask': tf.int32,
                               'input_type_ids': tf.int32,
-                              'client_id': tf.string},
+                              'client_id': tf.string,
+                              'input_tokens': tf.string},
                 output_shapes={
                     'client_id': (),
                     'input_ids': (None, self.max_seq_len),
                     'input_mask': (None, self.max_seq_len), #.shard(num_shards=4, index=4)
-                    'input_type_ids': (None, self.max_seq_len)}).prefetch(self.prefetch_size))
+                    'input_type_ids': (None, self.max_seq_len),
+                    'input_tokens': (None, self.max_seq_len)
+                }).prefetch(self.prefetch_size))
 
         return input_fn
 
