@@ -38,7 +38,7 @@ class BertClient(object):
     def __init__(self, ip='localhost', port=5555, port_out=5556,
                  output_fmt='ndarray', show_server_config=False,
                  identity=None, check_version=True, check_length=True,
-                 timeout=-1, mode='NER', ner_model_dir=None):
+                 timeout=-1, mode='NER', batch_size_limit=32):
         """ A client object connected to a BertServer
 
         Create a BertClient that connects to a BertServer.
@@ -74,7 +74,7 @@ class BertClient(object):
         :param check_length: check if server `max_seq_len` is less than the sentence length before sent
         :param timeout: set the timeout (milliseconds) for receive operation on the client, -1 means no timeout and wait until result returns
         :param mode: mode for bert or ner or etc...
-        :param ner_model_dir dir of ner mdoel, should contains label2id.pkl
+        :param batch_size_limit ensure size of texts is less than a number
         """
 
         self.context = zmq.Context()
@@ -108,6 +108,7 @@ class BertClient(object):
         self.port_out = port_out
         self.ip = ip
         self.length_limit = 0
+        self.batch_size_limit = batch_size_limit
 
         if check_version or show_server_config or check_length:
             s_status = self.server_status
@@ -262,7 +263,8 @@ class BertClient(object):
             self._check_input_lst_lst_str(texts)
         else:
             self._check_input_lst_str(texts)
-
+        if batch_size_limit > 0:
+            self._check_batch_size(texts)
         if self.length_limit and not self._check_length(texts, self.length_limit, is_tokenized):
             warnings.warn('some of your sentences have more tokens than "max_seq_len=%d" set on the server, '
                           'as consequence you may get less-accurate or truncated embeddings.\n'
@@ -353,6 +355,12 @@ class BertClient(object):
             # do a simple whitespace tokenizer
             return all(len(t.split()) <= len_limit for t in texts)
 
+    @staticmethod
+    def _check_batch_size(texts):
+        if len(texts) > self.batch_size_limit:
+            raise ValueError(
+                '"texts" must be a list with no more than %d string, try `encode_async` method for bigger size' % (self.batch_size_limit))
+        
     @staticmethod
     def _check_input_lst_str(texts):
         if not isinstance(texts, list):
