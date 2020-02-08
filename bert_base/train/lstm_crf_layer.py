@@ -53,7 +53,7 @@ class BLSTM_CRF(object):
             # blstm
             lstm_output = self.blstm_layer(self.embedded_chars)
             # project
-            logits = tf.layers.Dense(self.num_labels,kernel_regularizer=tf.keras.regularizers.l2(1e-5))(lstm_output)
+            logits = tf.layers.dense(lstm_output,self.num_labels,name='project',kernel_regularizer=tf.keras.regularizers.l2(1e-5))
             loss, pred_ids = self._softmax_layer(logits, self.labels, self.num_labels, self.input_mask)
         else:
             if crf_only:

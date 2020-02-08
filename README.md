@@ -19,6 +19,36 @@ This project may be more close to process Chinese data. but other language only 
 
 THIS PROJECT ONLY SUPPORT Python3.  
 ###################################################################
+
+## 模型改进
+此项目基于[原作](https://blog.csdn.net/macanv)基础上修改，在训练阶段增加了更多参数用于模型的微调。
+
+|参数|说明|
+|---|---|
+|crf_only|finetune的网络结构是BERT+CRF|
+|lstm_only|fineture的网络结构是BERT+BiLSTM+Softmax|
+|max_steps_without_decrease|指定训练时监控验证集损失，经过多少步不再下降时停止训练|
+|trainable_last_layers|指定训练时最后几层的参数可以训练，其它层的参数冻结不做反向更新;不指定时所有参数都可以反向更新|
+
+tiny数据集上训练使用的shell:
+```
+bert-base-ner-train \
+    -data ./data/tiny \
+    -bert_config_file $BERT_CN_DIR/bert_config.json \
+    -init_checkpoint $BERT_CN_DIR/bert_model.ckpt \
+    -vocab_file $BERT_CN_DIR/vocab.txt \
+    -output_dir saved_model \
+    -num_train_epochs 100 \
+    -lstm_size 128 \
+    -num_layers 1 \
+    -save_summary_steps 100 \
+    -save_checkpoints_steps 100 \
+    -learning_rate 5e-5 \
+    -dropout_rate 0.5 \
+    -batch_size 32 \
+    -clean -trainable_last_layers 0,1
+```
+
 ## Download project and install  
 You can install this project by:  
 ```

@@ -391,14 +391,16 @@ def model_fn_builder(bert_config, num_labels,label_list, init_checkpoint, learni
                                                              init_checkpoint)
             tf.train.init_from_checkpoint(init_checkpoint, assignment_map)
         # enable trainable on last layers, and frozen other layers
-        if args.trainable_last_layers is str:
-            last_layers = ['blstm_crf_layer', 'layer_11', 'layer_10', 'layer_9', 'layer_8', 'layer_7']
-            trainable_layers_index = args.trainable_last_layers.split(',')
+        if args.trainable_last_layers:
+            last_layers = ['finetune', 'bert/encoder/layer_11', 'bert/encoder/layer_10',
+                            'bert/encoder/layer_9', 'bert/encoder/layer_8', 'bert/encoder/layer_7']
+            trainable_layers_index = [int(ind) for ind in args.trainable_last_layers.split(',')]
             trainable_layers = [name for index, name in enumerate(last_layers) if index in trainable_layers_index]
-            tf.logging.info("Last layers of BER are trainable: "+str(trainable_layers))
+            tf.logging.info("Only allow last n layers are trainable: "+str(trainable_layers))
             filter_trainable_variables(trainable_layers)
         # 打印变量名
         if args.verbose:
+            tvars = tf.trainable_variables()
             logger.info("**** Trainable Variables ****")
             # 打印加载模型的参数
             for var in tvars:

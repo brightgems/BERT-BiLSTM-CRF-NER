@@ -15,7 +15,7 @@ bert-base-ner-train \
     -learning_rate 5e-5 \
     -dropout_rate 0.5 \
     -batch_size 32 \
-    -clean 
+    -clean -trainable_last_layers 0,1
 
 # TRAIN BASELINE
 bert-base-ner-train \

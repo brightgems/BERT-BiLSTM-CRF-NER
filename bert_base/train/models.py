@@ -6,6 +6,7 @@
  @Author  : MaCan (ma_cancan@163.com)
  @File    : models.py
 """
+import six
 import tensorflow.compat.v1 as tf
 from bert_base.train.lstm_crf_layer import BLSTM_CRF
 from tensorflow.contrib.layers.python.layers import initializers
@@ -122,7 +123,7 @@ def create_model(bert_config, is_training, input_ids, input_mask,
     used = tf.sign(tf.abs(input_ids))
     lengths = tf.reduce_sum(used, reduction_indices=1)  # [batch_size] 大小的向量，包含了当前batch中的序列长度
     # 添加CRF output layer
-    with tf.variable_scope('blstm_crf_layer'):
+    with tf.variable_scope('finetune'):
         blstm_crf = BLSTM_CRF(embedded_chars=embedding, input_mask=input_mask, hidden_unit=lstm_size, cell_type=cell, num_layers=num_layers,
                             dropout_rate=dropout_rate, initializers=initializers, num_labels=num_labels,
                             seq_length=max_seq_length, labels=labels, lengths=lengths, is_training=is_training)
