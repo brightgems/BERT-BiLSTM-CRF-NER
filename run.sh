@@ -34,3 +34,11 @@ bert-base-ner-train \
     -batch_size 32 \
     -max_steps_without_decrease 1000 \
     -clean 
+
+
+# Serving
+bert-base-serving-start \
+    -model_dir saved_model \
+    -bert_model_dir $BERT_CN_DIR \
+    -model_pb_dir $(pwd)/model_pb_dir \
+    -mode NER

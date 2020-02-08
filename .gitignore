@@ -4,3 +4,4 @@ bert_base.egg-info
 dist
 .vscode
 saved_model
+model_pb_dir

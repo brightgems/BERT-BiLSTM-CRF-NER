@@ -78,6 +78,10 @@ def get_args_parser():
                         then the embedding is preserved, otherwise the embedding is masked to zero before pooling')
     group2.add_argument('-lstm_size', type=int, default=128,
                         help='size of lstm units.')
+    group2.add_argument('-crf_only', action='store_true', default=False)
+    group2.add_argument('-lstm_only', action='store_true', default=False)
+    group2.add_argument('-num_layers', type=int, default=1,
+                        help='number of rnn layers, default is 1.')
 
     group3 = parser.add_argument_group('Serving Configs',
                                        'config how server utilizes GPU/CPU resources')
